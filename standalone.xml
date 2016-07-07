@@ -1,0 +1,686 @@
+<?xml version="1.0" ?>
+
+<server xmlns="urn:jboss:domain:3.0">
+
+    <extensions>
+        <extension module="org.jboss.as.clustering.infinispan"/>
+        <extension module="org.jboss.as.connector"/>
+        <extension module="org.jboss.as.deployment-scanner"/>
+        <extension module="org.jboss.as.ee"/>
+        <extension module="org.jboss.as.ejb3"/>
+        <extension module="org.jboss.as.jaxrs"/>
+        <extension module="org.jboss.as.jdr"/>
+        <extension module="org.jboss.as.jmx"/>
+        <extension module="org.jboss.as.jpa"/>
+        <extension module="org.jboss.as.jsf"/>
+        <extension module="org.jboss.as.jsr77"/>
+        <extension module="org.jboss.as.logging"/>
+        <extension module="org.jboss.as.mail"/>
+        <extension module="org.jboss.as.messaging"/>
+        <extension module="org.jboss.as.naming"/>
+        <extension module="org.jboss.as.pojo"/>
+        <extension module="org.jboss.as.remoting"/>
+        <extension module="org.jboss.as.sar"/>
+        <extension module="org.jboss.as.security"/>
+        <extension module="org.jboss.as.transactions"/>
+        <extension module="org.jboss.as.webservices"/>
+        <extension module="org.jboss.as.weld"/>
+        <extension module="org.wildfly.extension.batch"/>
+        <extension module="org.wildfly.extension.bean-validation"/>
+        <extension module="org.wildfly.extension.io"/>
+        <extension module="org.wildfly.extension.request-controller"/>
+        <extension module="org.wildfly.extension.security.manager"/>
+        <extension module="org.wildfly.extension.undertow"/>
+        <extension module="org.wildfly.iiop-openjdk"/>
+    </extensions>
+
+    <system-properties>
+        <property name="appsync.base.dir" value="C:\EMC\AppSync"/>
+        <property name="appsync.server" value="lrmj027.lss.emc.com"/>
+        <property name="appsync.cas_https_port" value="8444"/>
+        <property name="appsync.https_port" value="8445"/>
+		<property name="cxf.tls-client.disableCNCheck" value="true"/>
+    </system-properties>
+
+
+    <management>
+        <security-realms>
+            <security-realm name="UndertowRealm">
+                <server-identities>
+                    <ssl>
+                        <keystore path="cas.jks" relative-to="jboss.server.config.dir" keystore-password="changeit" alias="appsyncapollo" key-password="changeit"/>
+                    </ssl>
+                </server-identities>
+            </security-realm>
+            <security-realm name="ManagementRealm">
+                <authentication>
+                    <properties path="mgmt-users.properties" relative-to="jboss.server.config.dir"/>
+                </authentication>
+            </security-realm>
+        </security-realms>
+        <management-interfaces>
+            <native-interface security-realm="ManagementRealm">
+                <socket-binding native="management-native"/>
+            </native-interface>
+            <http-interface security-realm="ManagementRealm">
+                <socket-binding http="management-http"/>
+            </http-interface>
+        </management-interfaces>
+    </management>
+
+    <profile>
+        <subsystem xmlns="urn:jboss:domain:logging:3.0">
+            <console-handler name="CONSOLE">
+                <level name="DEBUG"/>
+                <formatter>
+                    <pattern-formatter pattern="%d{MM-dd-yyyy HH:mm:ss.SSS} %p [%c{1}] %s%E%n"/>
+                </formatter>
+            </console-handler>
+            <periodic-rotating-file-handler name="AUDIT" autoflush="true">
+                <level name="INFO"/>
+                <file relative-to="jboss.server.log.dir" path="audit.csv"/>
+                <suffix value=".yyyy-MM-dd"/>
+                <append value="true"/>
+            </periodic-rotating-file-handler>
+            <size-rotating-file-handler name="FILE" autoflush="true">
+                <level name="DEBUG"/>
+                <formatter>
+                    <pattern-formatter pattern="%d{MM-dd-yyyy HH:mm:ss.SSS} %p [%t] [%c] [%X{hostname}] [%X{masterid}] %s%E%n"/>
+                </formatter>
+                <file relative-to="jboss.server.log.dir" path="server.log"/>
+                <rotate-size value="20m"/>
+                <max-backup-index value="19"/>
+            </size-rotating-file-handler>
+            <logger category="com.emc.apollo.login.ApolloLoginModule" use-parent-handlers="false">
+                <level name="INFO"/>
+                <handlers>
+                    <handler name="AUDIT"/>
+                </handlers>
+            </logger>
+            <logger category="com.emc.apollo.datamodel.BaseServiceBean" use-parent-handlers="false">
+                <level name="INFO"/>
+            </logger>
+            <logger category="com.arjuna">
+                <level name="WARN"/>
+            </logger>
+            <logger category="sun.rmi">
+                <level name="WARN"/>
+            </logger>
+            <logger category="jacorb">
+                <level name="WARN"/>
+            </logger>
+            <logger category="jacorb.config">
+                <level name="ERROR"/>
+            </logger>
+            <logger category="org.apache">
+                <level name="WARN"/>
+            </logger>
+            <logger category="org.hibernate">
+                <level name="INFO"/>
+            </logger>
+            <logger category="javax">
+                <level name="WARN"/>
+            </logger>
+            <logger category="org.hornetq">
+                <level name="WARN"/>
+            </logger>
+            <logger category="org.jboss">
+                <level name="INFO"/>
+            </logger>
+            <logger category="com.sun">
+                <level name="WARN"/>
+            </logger>
+            <logger category="org.infinispan">
+                <level name="WARN"/>
+            </logger>
+            <logger category="org.xnio">
+                <level name="WARN"/>
+            </logger>
+            <root-logger>
+                <level name="DEBUG"/>
+                <handlers>
+                    <handler name="CONSOLE"/>
+                    <handler name="FILE"/>
+                </handlers>
+            </root-logger>
+        </subsystem>
+        <subsystem xmlns="urn:jboss:domain:datasources:3.0">
+            <datasources>
+                <datasource jndi-name="java:jboss/datasources/DefaultDS" pool-name="pool_DefaultDS" enabled="true" use-java-context="true" use-ccm="true">
+                    <connection-url>jdbc:postgresql://127.0.0.1:5432/apollo</connection-url>
+                    <driver>postgresql</driver>
+                    <pool>
+                        <min-pool-size>1</min-pool-size>
+                        <max-pool-size>60</max-pool-size>
+                        <use-strict-min>false</use-strict-min>
+                        <flush-strategy>FailingConnectionOnly</flush-strategy>
+                    </pool>
+                    <security>
+                        <security-domain>DefaultDatastoreDomain</security-domain>
+                    </security>
+                    <timeout>
+                        <blocking-timeout-millis>5000</blocking-timeout-millis>
+                        <idle-timeout-minutes>1</idle-timeout-minutes>
+                    </timeout>
+                </datasource>
+                <datasource jndi-name="java:jboss/datasources/DBSERVER_SUPERUSER_NOTX" pool-name="pool_DBSERVER_SUPERUSER_NOTX" enabled="true" use-java-context="true" use-ccm="true">
+                    <connection-url>jdbc:postgresql://127.0.0.1:5432/apollo</connection-url>
+                    <driver-class>org.postgresql.Driver</driver-class>
+                    <driver>postgresql</driver>
+                    <transaction-isolation>TRANSACTION_READ_UNCOMMITTED</transaction-isolation>
+                    <pool>
+                        <min-pool-size>1</min-pool-size>
+                        <max-pool-size>60</max-pool-size>
+                        <use-strict-min>false</use-strict-min>
+                        <flush-strategy>FailingConnectionOnly</flush-strategy>
+                    </pool>
+                    <security>
+                        <security-domain>DPASuperUserDatastoreDomain</security-domain>
+                    </security>
+                    <validation>
+                        <valid-connection-checker class-name="org.jboss.jca.adapters.jdbc.extensions.postgres.PostgreSQLValidConnectionChecker"/>
+                        <exception-sorter class-name="org.jboss.jca.adapters.jdbc.extensions.postgres.PostgreSQLExceptionSorter"/>
+                    </validation>
+                    <statement>
+                        <prepared-statement-cache-size>50</prepared-statement-cache-size>
+                        <share-prepared-statements>true</share-prepared-statements>
+                    </statement>
+                </datasource>
+                <xa-datasource jndi-name="java:jboss/datasources/ApolloDS" pool-name="pool-ApolloDS" enabled="true" use-java-context="true" spy="false" use-ccm="true">
+                    <xa-datasource-property name="ServerName">
+                        127.0.0.1
+                    </xa-datasource-property>
+                    <xa-datasource-property name="PortNumber">
+                        5432
+                    </xa-datasource-property>
+                    <xa-datasource-property name="DatabaseName">
+                        apollo
+                    </xa-datasource-property>
+                    <xa-datasource-class>org.postgresql.xa.PGXADataSource</xa-datasource-class>
+                    <driver>postgresql</driver>
+                    <transaction-isolation>TRANSACTION_READ_UNCOMMITTED</transaction-isolation>
+                    <xa-pool>
+                        <min-pool-size>50</min-pool-size>
+                        <max-pool-size>50</max-pool-size>
+                        <use-strict-min>false</use-strict-min>
+                        <flush-strategy>FailingConnectionOnly</flush-strategy>
+                        <is-same-rm-override>false</is-same-rm-override>
+                        <pad-xid>false</pad-xid>
+                        <wrap-xa-resource>false</wrap-xa-resource>
+                    </xa-pool>
+                    <security>
+                        <security-domain>ApolloDatastoreDomain</security-domain>
+                    </security>
+                    <validation>
+                        <valid-connection-checker class-name="org.jboss.jca.adapters.jdbc.extensions.postgres.PostgreSQLValidConnectionChecker"/>
+                        <exception-sorter class-name="org.jboss.jca.adapters.jdbc.extensions.postgres.PostgreSQLExceptionSorter"/>
+                    </validation>
+                    <statement>
+                        <prepared-statement-cache-size>50</prepared-statement-cache-size>
+                    </statement>
+                </xa-datasource>
+                <drivers>
+                    <driver name="postgresql" module="org.postgresql">
+                        <xa-datasource-class>org.postgresql.xa.PGXADataSource</xa-datasource-class>
+                    </driver>
+                </drivers>
+            </datasources>
+        </subsystem>
+        <subsystem xmlns="urn:jboss:domain:deployment-scanner:2.0">
+            <deployment-scanner path="deployments" relative-to="jboss.server.base.dir" scan-interval="5000"/>
+        </subsystem>
+        <subsystem xmlns="urn:jboss:domain:ee:3.0"/>
+        <subsystem xmlns="urn:jboss:domain:bean-validation:1.0"/>
+        <subsystem xmlns="urn:jboss:domain:ejb3:3.0">
+            <session-bean>
+                <stateful default-access-timeout="5000" cache-ref="simple" passivation-disabled-cache-ref="simple"/>
+                <singleton default-access-timeout="5000"/>
+            </session-bean>
+            <mdb>
+                <resource-adapter-ref resource-adapter-name="hornetq-ra"/>
+                <bean-instance-pool-ref pool-name="mdb-strict-max-pool"/>
+            </mdb>
+            <pools>
+                <bean-instance-pools>
+                    <strict-max-pool name="slsb-strict-max-pool" max-pool-size="20" instance-acquisition-timeout="5" instance-acquisition-timeout-unit="MINUTES"/>
+                    <strict-max-pool name="mdb-strict-max-pool" max-pool-size="20" instance-acquisition-timeout="5" instance-acquisition-timeout-unit="MINUTES"/>
+                </bean-instance-pools>
+            </pools>
+            <caches>
+                <cache name="simple"/>
+                <cache name="distributable" passivation-store-ref="infinispan" aliases="passivating clustered"/>
+            </caches>
+            <passivation-stores>
+                <passivation-store name="infinispan" cache-container="ejb" max-size="10000"/>
+            </passivation-stores>
+            <async thread-pool-name="default"/>
+            <timer-service thread-pool-name="default" default-data-store="default-file-store">
+                <data-stores>
+                    <file-data-store name="default-file-store" path="timer-service-data" relative-to="jboss.server.data.dir"/>
+                </data-stores>
+            </timer-service>
+            <remote connector-ref="remoting-connector" thread-pool-name="default"/>
+            <thread-pools>
+                <thread-pool name="default">
+                    <max-threads count="10"/>
+                    <keepalive-time time="100" unit="milliseconds"/>
+                </thread-pool>
+            </thread-pools>
+            <default-security-domain value="other"/>
+            <default-missing-method-permissions-deny-access value="true"/>
+        </subsystem>
+        <subsystem xmlns="urn:jboss:domain:io:1.1">
+            <worker name="default"/>
+            <buffer-pool name="default"/>
+        </subsystem>
+        <subsystem xmlns="urn:jboss:domain:iiop-openjdk:1.0">
+            <orb socket-binding="iiop" ssl-socket-binding="iiop-ssl"/>
+            <initializers security="identity" transactions="spec"/>
+        </subsystem>
+        <subsystem xmlns="urn:jboss:domain:infinispan:3.0">
+            <cache-container name="hibernate" default-cache="local-query" module="org.hibernate.infinispan">
+                <local-cache name="entity">
+                    <locking isolation="READ_COMMITTED"/>
+                    <transaction mode="NON_XA" locking="OPTIMISTIC"/>
+                    <eviction strategy="LRU" max-entries="10000"/>
+                    <expiration max-idle="100000"/>
+                </local-cache>
+                <local-cache name="local-query">
+                    <transaction mode="NONE"/>
+                    <eviction strategy="LRU" max-entries="10000"/>
+                    <expiration max-idle="100000"/>
+                </local-cache>
+                <local-cache name="timestamps">
+                    <transaction mode="NONE"/>
+                    <eviction strategy="NONE"/>
+                </local-cache>
+            </cache-container>
+        </subsystem>
+        <subsystem xmlns="urn:jboss:domain:jaxrs:1.0"/>
+        <subsystem xmlns="urn:jboss:domain:jca:3.0">
+            <archive-validation enabled="true" fail-on-error="true" fail-on-warn="false"/>
+            <bean-validation enabled="true"/>
+            <default-workmanager>
+                <short-running-threads>
+                    <core-threads count="50"/>
+                    <queue-length count="50"/>
+                    <max-threads count="50"/>
+                    <keepalive-time time="10" unit="seconds"/>
+                </short-running-threads>
+                <long-running-threads>
+                    <core-threads count="50"/>
+                    <queue-length count="50"/>
+                    <max-threads count="50"/>
+                    <keepalive-time time="10" unit="seconds"/>
+                </long-running-threads>
+            </default-workmanager>
+            <cached-connection-manager/>
+        </subsystem>
+        <subsystem xmlns="urn:jboss:domain:jdr:1.0"/>
+        <subsystem xmlns="urn:jboss:domain:jmx:1.3">
+            <expose-resolved-model proper-property-format="false"/>
+            <remoting-connector/>
+        </subsystem>
+        <subsystem xmlns="urn:jboss:domain:jpa:1.1">
+            <jpa default-datasource=""/>
+        </subsystem>
+        <subsystem xmlns="urn:jboss:domain:messaging:3.0">
+            <hornetq-server>
+                <persistence-enabled>true</persistence-enabled>
+                <thread-pool-max-size>-1</thread-pool-max-size>
+                <jmx-management-enabled>true</jmx-management-enabled>
+                <statistics-enabled>true</statistics-enabled>
+                <message-counter-sample-period>2000</message-counter-sample-period>
+                <message-counter-max-day-history>2</message-counter-max-day-history>
+                <connection-ttl-override>-1</connection-ttl-override>
+                <journal-file-size>102400</journal-file-size>
+                <journal-min-files>2</journal-min-files>
+
+                <connectors>
+                    <netty-connector name="netty" socket-binding="messaging"/>
+                    <netty-connector name="netty-throughput" socket-binding="messaging-throughput">
+                        <param key="batch-delay" value="50"/>
+                    </netty-connector>
+                    <in-vm-connector name="in-vm" server-id="0"/>
+                </connectors>
+
+                <acceptors>
+                    <netty-acceptor name="netty" socket-binding="messaging"/>
+                    <netty-acceptor name="netty-throughput" socket-binding="messaging-throughput">
+                        <param key="batch-delay" value="50"/>
+                        <param key="direct-deliver" value="false"/>
+                    </netty-acceptor>
+                    <in-vm-acceptor name="in-vm" server-id="0"/>
+                </acceptors>
+
+                <security-settings>
+                    <security-setting match="#">
+                        <permission type="send" roles="guest"/>
+                        <permission type="consume" roles="guest"/>
+                        <permission type="createNonDurableQueue" roles="guest"/>
+                        <permission type="deleteNonDurableQueue" roles="guest"/>
+                    </security-setting>
+                </security-settings>
+
+                <address-settings>
+                    <address-setting match="#">
+                        <dead-letter-address>jms.queue.DLQ</dead-letter-address>
+                        <expiry-address>jms.queue.ExpiryQueue</expiry-address>
+                        <redelivery-delay>2000</redelivery-delay>
+                        <max-delivery-attempts>5</max-delivery-attempts>
+                        <max-size-bytes>104857600</max-size-bytes>
+                        <page-size-bytes>10485760</page-size-bytes>
+                        <address-full-policy>PAGE</address-full-policy>
+                        <message-counter-history-day-limit>10</message-counter-history-day-limit>
+                    </address-setting>
+                </address-settings>
+
+                <jms-connection-factories>
+                    <connection-factory name="InVmConnectionFactory">
+                        <connectors>
+                            <connector-ref connector-name="in-vm"/>
+                        </connectors>
+                        <entries>
+                            <entry name="java:/ConnectionFactory"/>
+                        </entries>
+                    </connection-factory>
+                    <connection-factory name="RemoteConnectionFactory">
+                        <connectors>
+                            <connector-ref connector-name="netty"/>
+                        </connectors>
+                        <entries>
+                            <entry name="RemoteConnectionFactory"/>
+                            <entry name="java:jboss/exported/jms/RemoteConnectionFactory"/>
+                        </entries>
+                    </connection-factory>
+                    <pooled-connection-factory name="hornetq-ra">
+                        <transaction mode="xa"/>
+                        <connectors>
+                            <connector-ref connector-name="in-vm"/>
+                        </connectors>
+                        <entries>
+                            <entry name="java:/JmsXA"/>
+                        </entries>
+                    </pooled-connection-factory>
+                </jms-connection-factories>
+
+                <jms-destinations>
+                    <jms-queue name="RESTLayerLDAPQueue">
+                        <entry name="java:/queue/RESTLayerLDAPQueue"/>
+                    </jms-queue>
+                    <jms-queue name="DLQ">
+                        <entry name="java:/queue/DLQ"/>
+                    </jms-queue>
+                    <jms-queue name="ExpiryQueue">
+                        <entry name="java:/queue/ExpiryQueue"/>
+                        <durable>true</durable>
+                    </jms-queue>
+                    <jms-queue name="VCenterServiceOutgoing">
+                        <entry name="queue/vCenterServerResponse"/>
+                        <durable>false</durable>
+                    </jms-queue>
+                    <jms-queue name="WorkflowOutgoing">
+                        <entry name="queue/workflowResponse"/>
+                        <durable>false</durable>
+                    </jms-queue>
+                    <jms-queue name="MappingOutgoing">
+                        <entry name="queue/mappingResponse"/>
+                        <durable>false</durable>
+                    </jms-queue>
+                    <jms-queue name="AlertQueue">
+                        <entry name="java:/queue/alertQueue"/>
+                        <durable>false</durable>
+                    </jms-queue>
+                    <jms-queue name="vCenterServerPendingDeleteOutgoing">
+                        <entry name="java:/queue/vCenterServerPendingDeleteResponse"/>
+                        <durable>false</durable>
+                    </jms-queue>
+                    <jms-queue name="ExchangeDiscoveryOutgoing">
+                        <entry name="java:/queue/exchangeDiscoveryResponse"/>
+                        <durable>false</durable>
+                    </jms-queue>
+                    <jms-queue name="EventsAlertQueue">
+                        <entry name="java:/queue/eventsAlertQueue"/>
+                        <durable>false</durable>
+                    </jms-queue>
+                    <jms-queue name="VCenterServiceIncoming">
+                        <entry name="queue/vCenterServiceRequest"/>
+                        <durable>false</durable>
+                    </jms-queue>
+                    <jms-queue name="WorkflowIncoming">
+                        <entry name="queue/workflowRequest"/>
+                        <durable>false</durable>
+                    </jms-queue>
+                    <jms-queue name="MappingIncoming">
+                        <entry name="queue/mappingRequest"/>
+                        <durable>false</durable>
+                    </jms-queue>
+                    <jms-queue name="EventsIncoming">
+                        <entry name="queue/eventsRequest"/>
+                        <durable>false</durable>
+                    </jms-queue>
+                    <jms-queue name="DeploymentIncoming">
+                        <entry name="queue/deploymentRequest"/>
+                        <durable>false</durable>
+                    </jms-queue>
+                    <jms-queue name="vCenterServerPendingDeleteIncoming">
+                        <entry name="java:/queue/vCenterServerPendingDeleteRequest"/>
+                        <durable>false</durable>
+                    </jms-queue>
+                    <jms-queue name="ExchangeDiscoveryIncoming">
+                        <entry name="java:/queue/exchangeDiscoveryRequest"/>
+                        <durable>false</durable>
+                    </jms-queue>
+                    <jms-queue name="RPOAnalysisQueue">
+                        <entry name="java:/queue/RPOAnalysisQueue"/>
+                        <durable>false</durable>
+                    </jms-queue>
+                    <jms-queue name="RecoverPointServiceRequest">
+                        <entry name="java:/queue/RecoverPointServiceRequest"/>
+                        <durable>false</durable>
+                    </jms-queue>
+                    <jms-queue name="RecoverPointServiceResponse">
+                        <entry name="java:/queue/RecoverPointServiceResponse"/>
+                        <durable>false</durable>
+                    </jms-queue>
+                    <jms-queue name="SqlServerRequestQueue">
+                        <entry name="queue/SqlServerRequestQueue"/>
+                        <durable>false</durable>
+                    </jms-queue>
+                    <jms-queue name="SqlServerResponseQueue">
+                        <entry name="queue/SqlServerResponseQueue"/>
+                        <durable>false</durable>
+                    </jms-queue>
+                    <jms-queue name="SqlServiceRequest">
+                        <entry name="queue/SqlServiceRequest"/>
+                        <durable>false</durable>
+                    </jms-queue>
+                    <jms-queue name="SqlServiceResponse">
+                        <entry name="queue/SqlServiceResponse"/>
+                        <durable>false</durable>
+                    </jms-queue>
+                    <jms-queue name="VNXFileServiceRequest">
+                        <entry name="queue/VNXFileServiceRequest"/>
+                        <durable>false</durable>
+                    </jms-queue>
+                    <jms-queue name="VNXFileServiceResponse">
+                        <entry name="queue/VNXFileServiceResponse"/>
+                        <durable>false</durable>
+                    </jms-queue>
+                    <jms-queue name="VNXFileServiceAltRequest">
+                        <entry name="queue/VNXFileServiceAltRequest"/>
+                        <durable>false</durable>
+                    </jms-queue>
+                    <jms-queue name="VNXFileServiceAltResponse">
+                        <entry name="queue/VNXFileServiceAltResponse"/>
+                        <durable>false</durable>
+                    </jms-queue>
+                    <jms-topic name="Apollo-Public">
+                        <entry name="java:/topic/Apollo/public"/>
+                    </jms-topic>
+                </jms-destinations>
+            </hornetq-server>
+        </subsystem>
+        <subsystem xmlns="urn:jboss:domain:naming:2.0"/>
+        <subsystem xmlns="urn:jboss:domain:pojo:1.0"/>
+        <subsystem xmlns="urn:jboss:domain:remoting:3.0">
+            <connector name="remoting-connector" socket-binding="remoting" security-realm="ManagementRealm"/>
+        </subsystem>
+        <subsystem xmlns="urn:jboss:domain:resource-adapters:3.0">
+            <resource-adapters>
+                <resource-adapter id="remotex.rar">
+                    <archive>
+                        remotex.rar
+                    </archive>
+                    <transaction-support>NoTransaction</transaction-support>
+                    <connection-definitions>
+                        <connection-definition class-name="apollo.remotex.spi.ManagedRemoteExecutionConnectionFactory" jndi-name="java:jboss/resourceadapters/remote-execution" pool-name="remote-execution">
+                            <security>
+                                <application/>
+                            </security>
+                            <timeout>
+                                <blocking-timeout-millis>600000</blocking-timeout-millis>
+                                <idle-timeout-minutes>1</idle-timeout-minutes>
+                            </timeout>
+                        </connection-definition>
+                    </connection-definitions>
+                </resource-adapter>
+            </resource-adapters>
+        </subsystem>
+        <subsystem xmlns="urn:jboss:domain:security:1.2">
+            <security-domains>
+                <security-domain name="other" cache-type="default">
+                    <authentication>
+                        <login-module code="Remoting" flag="optional">
+                            <module-option name="password-stacking" value="useFirstPass"/>
+                        </login-module>
+                        <login-module code="RealmUsersRoles" flag="required">
+                            <module-option name="usersProperties" value="${jboss.server.config.dir}/mgmt-users.properties"/>
+                            <module-option name="realm" value="ManagementRealm"/>
+                            <module-option name="password-stacking" value="useFirstPass"/>
+                        </login-module>
+                    </authentication>
+                </security-domain>
+                <security-domain name="Apollo" cache-type="default">
+                    <authentication>
+                        <login-module code="com.emc.apollo.login.ApolloLoginModule" flag="required"/>
+                    </authentication>
+                </security-domain>
+                <security-domain name="DefaultDatastoreDomain" cache-type="default">
+                    <authentication>
+                        <login-module code="org.picketbox.datasource.security.SecureIdentityLoginModule" flag="required">
+                            <module-option name="username" value="apollouser"/>
+                            <module-option name="password" value="-608bb31068c0540c497ade27f8cebda8927d2361de280bfe3fa6da707cdac199"/>
+                            <module-option name="managedConnectionFactoryName" value="jboss.jca:name=DefaultDS,service=LocalTxCM"/>
+                        </login-module>
+                    </authentication>
+                </security-domain>
+                <security-domain name="ApolloDatastoreDomain" cache-type="default">
+                    <authentication>
+                        <login-module code="org.picketbox.datasource.security.SecureIdentityLoginModule" flag="required">
+                            <module-option name="username" value="apollouser"/>
+                            <module-option name="password" value="-608bb31068c0540c497ade27f8cebda8927d2361de280bfe3fa6da707cdac199"/>
+                            <module-option name="managedConnectionFactoryName" value="jboss.jca:name=ApolloDS,service=XATxCM"/>
+                        </login-module>
+                    </authentication>
+                </security-domain>
+                <security-domain name="ApolloNoTXDatastoreDomain" cache-type="default">
+                    <authentication>
+                        <login-module code="org.picketbox.datasource.security.SecureIdentityLoginModule" flag="required">
+                            <module-option name="username" value="apollouser"/>
+                            <module-option name="password" value="-608bb31068c0540c497ade27f8cebda8927d2361de280bfe3fa6da707cdac199"/>
+                            <module-option name="managedConnectionFactoryName" value="jboss.jca:name=ApolloDS_NOTX,service=NoTxCM"/>
+                        </login-module>
+                    </authentication>
+                </security-domain>
+                <security-domain name="DPASuperUserDatastoreDomain" cache-type="default">
+                    <authentication>
+                        <login-module code="org.picketbox.datasource.security.SecureIdentityLoginModule" flag="required">
+                            <module-option name="username" value="apollouser"/>
+                            <module-option name="password" value="-608bb31068c0540c497ade27f8cebda8927d2361de280bfe3fa6da707cdac199"/>
+                            <module-option name="managedConnectionFactoryName" value="jboss.jca:name=DBSERVER_SUPERUSER_NOTX,service=NoTxCM"/>
+                        </login-module>
+                    </authentication>
+                </security-domain>
+                <security-domain name="jboss-web-policy" cache-type="default">
+                    <authorization>
+                        <policy-module code="Delegating" flag="required"/>
+                    </authorization>
+                </security-domain>
+                <security-domain name="jboss-ejb-policy" cache-type="default">
+                    <authorization>
+                        <policy-module code="Delegating" flag="required"/>
+                    </authorization>
+                </security-domain>
+            </security-domains>
+        </subsystem>
+        <subsystem xmlns="urn:jboss:domain:transactions:3.0">
+            <core-environment>
+                <process-id>
+                    <uuid/>
+                </process-id>
+            </core-environment>
+            <recovery-environment socket-binding="txn-recovery-environment" status-socket-binding="txn-status-manager"/>
+            <coordinator-environment default-timeout="300"/>
+        </subsystem>
+        <subsystem xmlns="urn:jboss:domain:undertow:2.0">
+            <buffer-cache name="default"/>
+            <server name="default-server">
+                <http-listener name="default" socket-binding="http"/>
+                <https-listener name="https" socket-binding="https" security-realm="UndertowRealm"/>
+                <host name="default-host" alias="localhost">
+                    <location name="/" handler="welcome-content"/>
+                </host>
+            </server>
+            <servlet-container name="default">
+                <jsp-config/>
+                <websockets/>
+            </servlet-container>
+            <handlers>
+                <file name="welcome-content" path="${jboss.home.dir}/welcome-content" directory-listing="true"/>
+            </handlers>
+        </subsystem>
+        <subsystem xmlns="urn:jboss:domain:webservices:2.0">
+            <wsdl-host>${jboss.bind.address:127.0.0.1}</wsdl-host>
+            <endpoint-config name="Standard-Endpoint-Config"/>
+            <endpoint-config name="Recording-Endpoint-Config">
+                <pre-handler-chain name="recording-handlers" protocol-bindings="##SOAP11_HTTP ##SOAP11_HTTP_MTOM ##SOAP12_HTTP ##SOAP12_HTTP_MTOM">
+                    <handler name="RecordingHandler" class="org.jboss.ws.common.invocation.RecordingServerHandler"/>
+                </pre-handler-chain>
+            </endpoint-config>
+            <client-config name="Standard-Client-Config"/>
+        </subsystem>
+        <subsystem xmlns="urn:jboss:domain:weld:2.0"/>
+    </profile>
+
+    <interfaces>
+        <interface name="management">
+            <inet-address value="${jboss.bind.address.management:127.0.0.1}"/>
+        </interface>
+        <interface name="public">
+            <inet-address value="${jboss.bind.address:0.0.0.0}"/>
+        </interface>
+        <interface name="unsecure">
+            <inet-address value="${jboss.bind.address.unsecure:127.0.0.1}"/>
+        </interface>
+    </interfaces>
+
+    <socket-binding-group name="standard-sockets" default-interface="public" port-offset="${jboss.socket.binding.port-offset:0}">
+        <socket-binding name="management-native" interface="management" port="${jboss.management.native.port:9999}"/>
+        <socket-binding name="management-http" interface="management" port="${jboss.management.http.port:9990}"/>
+        <socket-binding name="management-https" interface="management" port="${jboss.management.https.port:9993}"/>
+        <socket-binding name="http" port="${jboss.http.port:8085}"/>
+        <socket-binding name="https" port="${jboss.https.port:8445}"/>
+        <socket-binding name="txn-recovery-environment" port="4712"/>
+        <socket-binding name="txn-status-manager" port="4713"/>
+        <socket-binding name="remoting" port="4447"/>
+        <socket-binding name="messaging" port="5445"/>
+		<socket-binding name="iiop" interface="unsecure" port="3528"/>
+        <socket-binding name="iiop-ssl" interface="unsecure" port="3529"/>
+        <socket-binding name="messaging-throughput" port="5455"/>
+        <outbound-socket-binding name="mail-smtp">
+            <remote-destination host="localhost" port="25"/>
+        </outbound-socket-binding>
+    </socket-binding-group>
+
+</server>
